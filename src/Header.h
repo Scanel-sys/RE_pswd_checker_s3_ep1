@@ -4,6 +4,24 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <windows.h>
+#include <tlhelp32.h>
+#include <conio.h>
+
+#define JUNK \
+__asm push eax \
+__asm xor eax, eax \
+__asm setpo al \
+__asm push edx \
+__asm xor edx, eax \
+__asm sal edx, 2 \
+__asm pop edx \
+__asm or eax, ecx \
+__asm pop eax
+
+
+typedef unsigned char* PUCHAR;
+
 
 
 struct Wagon
@@ -13,6 +31,21 @@ struct Wagon
     struct Wagon* nextWagon;
 };
 
+bool checkOutsideVisitor();
+
+bool visitNTGFlags();
+
+int CheckHardwareBreakpoints();
+
+bool checkSLDT();
+
+int CheckPEB();
+
+inline void antidebug();
+
+inline void antidebug1();
+
+inline void antidebug2();
 
 struct Wagon* Walloc(void);
 
@@ -32,7 +65,6 @@ void clearscr(void);
 
 int launch_wagon_wheels();
 
-
 bool if_file_exists(const std::string& fl_name);
 
 bool check_password(std::string& input_str);
@@ -47,8 +79,19 @@ bool hello_Roma(std::string& input_str);
 
 void putout_serial();
 
-void print_line(int number, const char* additional=NULL);
+void print_line(int number, const char* additional = NULL);
 
-int CRC_8(unsigned char* data, int length);
+bool if_ware();
+
+bool if_box();
+
+bool if_parall();
+
+bool DetectProcess(const char* process_name);
+
+int WriteMe(void* addr, unsigned int *wb, int size);
+
+int CRC_8_func(PUCHAR data, int length);
 
 std::string get_code();
+

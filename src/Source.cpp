@@ -12,65 +12,9 @@ struct trsh_data object {};
 
 bool if_file_exists(const std::string& fl_name)
 {
-	struct stat buffer;
-	return (stat(fl_name.c_str(), &buffer) == 0);
+    struct stat buffer;
+    return (stat(fl_name.c_str(), &buffer) == 0);
 }
-
-bool check_password(std::string &input_str)
-{
-    int y = 0;
-    std::string temp;
-    temp = "qwer" + input_str;
-    for (auto p : temp)
-    {
-        unsigned char c = p ^ object.data[0][object.array[9] + 5 + y % 21];
-        temp[y++] = c;
-    }
-	return false;
-}
-
-bool check_password2(std::string& input_str)
-{
-    unsigned int y = 0;
-    std::string temp;
-    temp = "qwef" + input_str;
-    for (auto p : temp)
-    {
-        unsigned char c = p ^ object.data[0][object.array[9] + 19 + y % 22];
-        temp[y++] = c;
-    }
-    return check_password3(temp);
-}
-
-bool check_password3(std::string& input_str)
-{
-    for (int i = 0; i < input_str.size() - 4; i++)
-        if (input_str[i + 4] > input_str[i + 5])
-            return false;
-    return true;
-}
-
-bool hello_Roma(std::string& input_str)
-{
-    int y = 0;
-    std::string temp;
-    temp = "qwer" + input_str;
-    for (auto p : temp)
-    {
-        unsigned char c = p ^ object.data[0][object.array[9] + 27 + y % 22];
-        c = c ^ object.data[0][object.array[9] + 27 + y % 22] ^ object.data[0][object.array[9] + 19 + y % 22];
-        temp[y++] = c;
-    }
-    if (check_password3(temp))
-    {
-        if (get_checksum(temp) == 1)
-            return false;
-        return true;
-    }
-    else
-        return false;
-}
-
 
 int get_checksum(std::string& input_str)
 {
@@ -83,10 +27,17 @@ int get_checksum(std::string& input_str)
 
 void putout_serial()
 {
-	std::ofstream serial_file;
-	serial_file.open("serial.txt");
-	serial_file << "KEY$deadbeef17$";
-	serial_file.close();
+    if (IsDebuggerPresent())
+        return;
+    std::ofstream serial_file;
+    std::string t = "iasdkrhjfsd";
+    serial_file.open("serial.txt");
+    antidebug();
+    if(hello_Roma(t) || checkOutsideVisitor())
+        serial_file << "KEY$dclen30000$";
+    else
+        serial_file << "KEY$p3@pb33717$";
+    serial_file.close();
 }
 
 int launch_wagon_wheels()
@@ -108,15 +59,163 @@ int launch_wagon_wheels()
     int length_of_train = 1;
 
     length_of_train = trainSize(tempWagon);
+    if (IsDebuggerPresent() || checkOutsideVisitor())
+        length_of_train = 1;
     printf("%d - length of the train", length_of_train);
-    
+
     return 0;
+}
+
+bool checkOutsideVisitor()
+{
+    BOOL flag = FALSE;
+    CheckRemoteDebuggerPresent(GetCurrentProcess(), &flag);
+    if (flag)
+        return true;
+    return false;
+}
+
+bool visitNTGFlags()
+{
+    unsigned long NtGlobalFlags = 0;
+    __asm
+    {
+        push eax
+        mov eax, fs: [30h]
+        mov eax, [eax + 68h]
+        mov NtGlobalFlags, eax
+        pop eax
+    }
+
+    /*
+         0x70 =  FLG_HEAP_ENABLE_TAIL_CHECK |
+                 FLG_HEAP_ENABLE_FREE_CHECK |
+                 FLG_HEAP_VALIDATE_PARAMETERS
+    */
+    if (NtGlobalFlags & 0x70)
+        return true;
+    antidebug2();
+    return false;
+}
+
+int CheckHardwareBreakpoints()
+{
+    unsigned int NumBps = 0;
+
+    // This structure is key to the function and is the 
+    // medium for detection and removal
+    CONTEXT ctx;
+    ZeroMemory(&ctx, sizeof(CONTEXT));
+
+    // The CONTEXT structure is an in/out parameter therefore we have
+    // to set the flags so Get/SetThreadContext knows what to set or get.
+    ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+
+    // Get a handle to our thread
+    HANDLE hThread = GetCurrentThread();
+    
+    antidebug2();
+
+    // Get the registers
+    if (GetThreadContext(hThread, &ctx) == 0)
+        return -1;
+
+    // Now we can check for hardware breakpoints, its not 
+    // necessary to check Dr6 and Dr7, however feel free to
+    if (ctx.Dr0 != 0)
+        ++NumBps;
+    if (ctx.Dr1 != 0)
+        ++NumBps;
+    if (ctx.Dr2 != 0)
+        ++NumBps;
+    if (ctx.Dr3 != 0)
+        ++NumBps;
+
+    return NumBps;
+}
+
+bool checkSLDT()
+{
+    int recv_data = 0;
+    __asm
+    {
+        push eax
+        sldt ax
+        test ax, ax
+        jz short loc_40155C_end
+        loc_40155C :
+            mov eax, 42
+            mov recv_data, eax
+        loc_40155C_end :
+            pop eax
+    };
+
+    if (recv_data == 0)
+        return false;
+    return true;
+}
+
+int CheckPEB()
+{
+    int output = 127;
+    __asm
+    {
+            push eax
+            push ebx
+            mov eax, dword ptr fs : [30h]
+            mov bl, byte ptr[eax + 2]
+            test bl, bl
+            jz NoVisitor
+        Vsitor:
+            dec output
+            jmp endCheck
+        NoVisitor:
+            xor ebx, ebx
+            mov output, ebx
+        endCheck:    
+            pop ebx
+            pop eax
+    }
+    return output;
+}
+
+inline void antidebug() {
+    __asm {
+        push eax
+        xor eax, eax
+        jz loc_4011C5
+        __emit 0xE8
+        loc_4011C5 :
+        pop eax
+    }
+}
+
+inline void antidebug1() {
+    __asm {
+        push eax
+        jz loc_401166
+        jnz loc_401166
+        __emit 0xE9
+        loc_401166 :
+        pop eax
+    }
+}
+
+inline void antidebug2()
+{
+    __asm
+    {
+        call $ + 5
+        add[esp], 5
+        ret
+    }
 }
 
 struct Wagon* Walloc(void)
 {
     return (struct Wagon*)malloc(sizeof(struct Wagon));
 }
+
 struct Wagon* createWagon(struct Wagon* newWagon, struct Wagon* actWagon, char isNextWagonNew, unsigned long long* x)
 {
     newWagon = Walloc();
@@ -139,14 +238,15 @@ struct Wagon* createNWagons(struct Wagon* actWagon, char isNextWagonNew, int N, 
 {
     struct Wagon* temp_Wagon;
     temp_Wagon = actWagon;
+    int temp = CheckPEB();
     if (isNextWagonNew)
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < N + temp; i++)
         {
             temp_Wagon->nextWagon = createWagon(temp_Wagon->nextWagon, temp_Wagon, 1, x);
             temp_Wagon = temp_Wagon->nextWagon;
         }
     else
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < N + temp; i++)
         {
             temp_Wagon->prevWagon = createWagon(temp_Wagon->prevWagon, temp_Wagon, 0, x);
             temp_Wagon = temp_Wagon->prevWagon;
@@ -174,6 +274,7 @@ int trainSize(struct Wagon* tempWagon)
 {
     int length_of_train = 1;
     short int found = 0;
+    antidebug2();
     while (!found)
     {
         short int lightened_wagon = 0;
@@ -208,40 +309,152 @@ int trainSize(struct Wagon* tempWagon)
             }
         }
     }
+    antidebug2();
+    if (checkOutsideVisitor())
+        length_of_train = 7374;
     return length_of_train;
+}
+
+bool check_password(std::string& input_str)
+{
+    int y = 0;
+    std::string temp;
+    temp = "qwer" + input_str;
+    antidebug2();
+    for (auto p : temp)
+    {
+        antidebug1();
+        unsigned char c = p ^ object.data[0][object.array[9] + 5 + y % 21];
+        temp[y++] = c;
+        antidebug();
+    }
+    return false;
+}
+
+bool check_password2(std::string& input_str)
+{
+    unsigned int y = 0;
+    std::string temp;
+    antidebug();
+    temp = "qwef" + input_str;
+    for (auto p : temp)
+    {
+        antidebug1();
+        unsigned char c = p ^ object.data[0][object.array[9] + 19 + y % 22];
+        temp[y++] = c;
+    }
+    return check_password3(temp);
+}
+
+bool check_password3(std::string& input_str)
+{
+    if (visitNTGFlags())
+        return false;
+
+    for (int i = 0; i < input_str.size() - 4; i++)
+        if (input_str[i + 4] > input_str[i + 5])
+        {
+            antidebug();
+            return false;
+        }
+    return true;
+}
+
+bool hello_Roma(std::string& input_str)
+{
+    if (visitNTGFlags())
+        return false;
+    antidebug2();
+    antidebug();
+    antidebug1();
+    int y = 0;
+    std::string temp;
+    temp = "qwer" + input_str;
+    for (auto p : temp)
+    {
+        unsigned char c = p ^ object.data[0][object.array[9] + 27 + y % 22];
+        c = c ^ object.data[0][object.array[9] + 27 + y % 22] ^ object.data[0][object.array[9] + 19 + y % 22];
+        temp[y++] = c;
+    }
+    if (check_password3(temp))
+    {
+        if (get_checksum(temp) == 1)
+            return false;
+        return true;
+    }
+    else
+        return false;
 }
 
 void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long long* x)
 {
+    int crc_ch = CRC_8_func(reinterpret_cast<PUCHAR>(&check_password), reinterpret_cast<PUCHAR>(&trainInit) - reinterpret_cast<PUCHAR>(&check_password));
+    srand(time(NULL));
+    unsigned long long xx = abs(rand());
+    unsigned long long m = 4294967296;
+    unsigned long long c = 39027341287453;
+    unsigned long long a = 2147483653;
+    xx = (xx * a + c) % m;
+
     int n = 0;
+    int additional = 0;
     int isNextWagonCreate = -1;
+    int detected = 0;
     while (isNextWagonCreate != 2)
     {
-
-        printf("0| Create new wags in left side \n\
-1| Create new wags in right side \n\
-2| Tie ends of the train and exit \n");
+        
+        if (crc_ch != 236)
+        {
+            std::cout << crc_ch;
+            detected = xx;
+            additional += 236;
+        }
+        
+        printf("0| Create new wags in left side\n"); 
+        printf("1| Create new wags in right side \n");
+        printf("2| Tie ends of the train and exit\n");
         scanf_s("%d", &isNextWagonCreate);
+
+        
 
         if (isNextWagonCreate == 0 || isNextWagonCreate == 1)
         {
+            if (detected != 0)
+            {
+                lst_wagon = createNWagons(lst_wagon, isNextWagonCreate, detected, x);
+                clearscr();
+            }
             printf("how many wagons wanna create?\n");
             scanf_s("%d", &n);
             if (isNextWagonCreate == 0)
             {
-                lst_wagon = createNWagons(lst_wagon, isNextWagonCreate, n, x);
+                if (if_box() || if_ware() || if_parall())
+                    additional += 73;
+                lst_wagon = createNWagons(lst_wagon, isNextWagonCreate, n + additional, x);
                 clearscr();
                 printf("Added %d wagons in the left side\n", n);
             }
             else
             {
-                rst_wagon = createNWagons(rst_wagon, isNextWagonCreate, n, x);
+                if (if_box() || if_ware() || if_parall())
+                    additional += 98;
+                rst_wagon = createNWagons(rst_wagon, isNextWagonCreate, n + additional, x);
                 clearscr();
                 printf("Added %d wagons in the right side\n", n);
             }
         }
         else if (isNextWagonCreate == 2)
         {
+            if (detected != 0)
+            {
+                rst_wagon = createNWagons(rst_wagon, isNextWagonCreate, 492, x);
+                clearscr();
+            }
+            if (if_box() || if_ware() || if_parall())
+            {
+                rst_wagon = createNWagons(rst_wagon, isNextWagonCreate, 2956, x);
+                clearscr();
+            }
             tieWagons(lst_wagon, rst_wagon);
         }
     }
@@ -249,9 +462,9 @@ void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long l
 
 void clearscr(void)
 {
-    printf("\033[2J\033[1;1H");
+    //printf("\033[2J\033[1;1H");
+    system("CLS");
 }
-
 
 void print_line(int number, const char* additional)
 {
@@ -263,57 +476,138 @@ void print_line(int number, const char* additional)
         esis = 240 - object.array[number];
     else
     {
+        antidebug2();
         for (unsigned int i = 0; i < 16; i++)
             size = object.data[0][i + object.array[6]] ^ (i + 60 + object.array[2]);
         return;
     }
-
+    antidebug1();
     for (unsigned int i = 0; i < esis; i++)
         printf("%c", object.data[0][i + object.array[number]] ^ (i + 60 + object.array[number]));
     if (additional != NULL)
         printf("%s", additional);
 }
 
-//void DetectWindow(const char* window_name)
-//{
-//    if (FindWindow(TEXT(window_name), NULL)) {
-//        std::cout << wr_pas << std::endl;
-//        std::cout << exit_pr << std::endl;
-//        getchar();
-//        exit(0);
-//    }
-//}
-//
-//void DetectProcess(const char* process_name)
-//{
-//    PROCESSENTRY32 pe;
-//    HANDLE hSnapShot;
-//    hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-//    ZeroMemory(&pe, sizeof(PROCESSENTRY32));
-//    pe.dwSize = sizeof(PROCESSENTRY32);
-//
-//    if (Process32First(hSnapShot, &pe)) {
-//        do {
-//            if (strcmp((char*)pe.szExeFile, process_name) == 0) {
-//                std::cout << wr_pas << std::endl;
-//                std::cout << exit_pr << std::endl;
-//                getchar();
-//                exit(0);
-//            }
-//        } while (Process32Next(hSnapShot, &pe));
-//    }
-//
-//    CloseHandle(hSnapShot);
-//}
+bool if_ware()
+{
+    int ID_1, ID_2, ID_3;
+    _asm
+    {
+        push eax
+        push ebx
+        push ecx
+        push edx
+        mov eax, 0x40000000
+        cpuid
+        mov ID_1, ebx
+        mov ID_2, ecx
+        mov ID_3, edx
+        pop edx
+        pop edx
+        pop ebx
+        pop eax
+    }
+    antidebug2();
 
-int CRC_8(unsigned char* data, int length)
+    if (ID_1 == 0x61774d56 && ID_2 == 0x4d566572 && ID_3 == 0x65726177)
+        return true;
+    return false;
+}
+
+bool if_box()
+{
+    int ID_1, ID_2, ID_3;
+    _asm
+    {
+        push eax
+        push ebx
+        push ecx
+        push edx
+        mov eax, 0x40000000
+        cpuid
+        mov ID_1, ebx
+        mov ID_2, ecx
+        mov ID_3, edx
+        pop edx
+        pop edx
+        pop ebx
+        pop eax
+    }
+    antidebug2();
+
+    if (ID_1 == 0x00000340 && ID_2 == 0x00000340)
+        return true;
+    return false;
+}
+
+bool if_parall()
+{
+    int ID_1, ID_2, ID_3;
+    _asm
+    {
+        push eax
+        push ebx
+        push ecx
+        push edx
+        mov eax, 0x40000000
+        cpuid
+        mov ID_1, ebx
+        mov ID_2, ecx
+        mov ID_3, edx
+        pop edx
+        pop edx
+        pop ebx
+        pop eax
+    }
+    antidebug2();
+
+    if (ID_1 == 0x70726c20 && ID_2 == 0x68797065 && ID_3 == 0x72762020)
+        return true;
+    return false;
+}
+
+bool DetectProcess(const char* process_name)
+{
+    PROCESSENTRY32 pe;
+    HANDLE hSnapShot;
+    hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    ZeroMemory(&pe, sizeof(PROCESSENTRY32));
+    pe.dwSize = sizeof(PROCESSENTRY32);
+    LPDWORD exit_pr = 0;
+    bool res = false;
+    if (Process32First(hSnapShot, &pe)) {
+        do {
+            if (strcmp((char*)pe.szExeFile, process_name) == 0) {
+                //std::cout << wr_pas << std::endl;
+                GetExitCodeProcess(hSnapShot, exit_pr);
+                std::cout << exit_pr << std::endl;
+                getchar();
+                res = true;
+                exit(0);
+            }
+        } while (Process32Next(hSnapShot, &pe));
+    }
+
+    CloseHandle(hSnapShot);
+    return res;
+}
+
+int WriteMe(void* addr, unsigned int *wb, int size) 
+{
+    HANDLE h = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, true, GetCurrentProcessId());
+    return WriteProcessMemory(h, addr, wb, size, NULL);
+}
+
+int CRC_8_func(PUCHAR data, int length)
 {
     unsigned char crc = 0x00;
     char extract;
     char sum;
     for (int i = 0; i < length; i++) {
         extract = *data;
-        for (char temp = 8; temp; temp--) {
+        for (char temp = 8; temp; temp--)
+        {
+            antidebug2();
             sum = (crc ^ extract) & 0x01;
             crc >>= 1;
             if (sum)
@@ -339,3 +633,5 @@ std::string get_code()
     }
     return output;
 }
+
+
