@@ -1,4 +1,4 @@
-#include "Header.h"
+﻿#include "Header.h"
 
 
 struct trsh_data
@@ -148,7 +148,7 @@ bool checkSLDT()
             mov recv_data, eax
         loc_40155C_end :
             pop eax
-    };
+    };  
 
     if (recv_data == 0)
         return false;
@@ -177,6 +177,78 @@ int CheckPEB()
             pop eax
     }
     return output;
+}
+
+
+bool check_password(std::string& input_str)
+{
+    int y = 0;
+    std::string temp;
+    temp = "qwer" + input_str;
+    antidebug2();
+    for (auto p : temp)
+    {
+        antidebug1();
+        unsigned char c = p ^ object.data[0][object.array[9] + 5 + y % 21];
+        temp[y++] = c;
+        antidebug();
+    }
+    return false;
+}
+
+bool check_password2(std::string& input_str)
+{
+    unsigned int y = 0;
+    std::string temp;
+    antidebug();
+    temp = "qwef" + input_str;
+    for (auto p : temp)
+    {
+        antidebug1();
+        unsigned char c = p ^ object.data[0][object.array[9] + 19 + y % 22];
+        temp[y++] = c;
+    }
+    return check_password3(temp);
+}
+
+bool check_password3(std::string& input_str)
+{
+    if (visitNTGFlags())
+        return false;
+
+    for (int i = 0; i < input_str.size() - 4; i++)
+        if (input_str[i + 4] > input_str[i + 5])
+        {
+            antidebug();
+            return false;
+        }
+    return true;
+}
+
+bool hello_Roma(std::string& input_str)
+{
+    if (visitNTGFlags())
+        return false;
+    antidebug2();
+    antidebug();
+    antidebug1();
+    int y = 0;
+    std::string temp;
+    temp = "qwer" + input_str;
+    for (auto p : temp)
+    {
+        unsigned char c = p ^ object.data[0][object.array[9] + 27 + y % 22];
+        c = c ^ object.data[0][object.array[9] + 27 + y % 22] ^ object.data[0][object.array[9] + 19 + y % 22];
+        temp[y++] = c;
+    }
+    if (check_password3(temp))
+    {
+        if (get_checksum(temp) == 1)
+            return false;
+        return true;
+    }
+    else
+        return false;
 }
 
 inline void antidebug() {
@@ -315,80 +387,9 @@ int trainSize(struct Wagon* tempWagon)
     return length_of_train;
 }
 
-bool check_password(std::string& input_str)
-{
-    int y = 0;
-    std::string temp;
-    temp = "qwer" + input_str;
-    antidebug2();
-    for (auto p : temp)
-    {
-        antidebug1();
-        unsigned char c = p ^ object.data[0][object.array[9] + 5 + y % 21];
-        temp[y++] = c;
-        antidebug();
-    }
-    return false;
-}
-
-bool check_password2(std::string& input_str)
-{
-    unsigned int y = 0;
-    std::string temp;
-    antidebug();
-    temp = "qwef" + input_str;
-    for (auto p : temp)
-    {
-        antidebug1();
-        unsigned char c = p ^ object.data[0][object.array[9] + 19 + y % 22];
-        temp[y++] = c;
-    }
-    return check_password3(temp);
-}
-
-bool check_password3(std::string& input_str)
-{
-    if (visitNTGFlags())
-        return false;
-
-    for (int i = 0; i < input_str.size() - 4; i++)
-        if (input_str[i + 4] > input_str[i + 5])
-        {
-            antidebug();
-            return false;
-        }
-    return true;
-}
-
-bool hello_Roma(std::string& input_str)
-{
-    if (visitNTGFlags())
-        return false;
-    antidebug2();
-    antidebug();
-    antidebug1();
-    int y = 0;
-    std::string temp;
-    temp = "qwer" + input_str;
-    for (auto p : temp)
-    {
-        unsigned char c = p ^ object.data[0][object.array[9] + 27 + y % 22];
-        c = c ^ object.data[0][object.array[9] + 27 + y % 22] ^ object.data[0][object.array[9] + 19 + y % 22];
-        temp[y++] = c;
-    }
-    if (check_password3(temp))
-    {
-        if (get_checksum(temp) == 1)
-            return false;
-        return true;
-    }
-    else
-        return false;
-}
-
 void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long long* x)
 {
-    int crc_ch = CRC_8_func(reinterpret_cast<PUCHAR>(&check_password), reinterpret_cast<PUCHAR>(&trainInit) - reinterpret_cast<PUCHAR>(&check_password));
+    int md_hash = count_md5_funchash(reinterpret_cast<const char*>(&hello_Roma), reinterpret_cast<PUCHAR>(&antidebug) - reinterpret_cast<PUCHAR>(&hello_Roma));
     srand(time(NULL));
     unsigned long long xx = abs(rand());
     unsigned long long m = 4294967296;
@@ -402,20 +403,20 @@ void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long l
     int detected = 0;
     while (isNextWagonCreate != 2)
     {
-        
-        if (crc_ch != 236)
+
+        if (md_hash != 1843)
         {
-            std::cout << crc_ch;
+            std::cout << md_hash;
             detected = xx;
             additional += 236;
         }
-        
-        printf("0| Create new wags in left side\n"); 
+
+        printf("0| Create new wags in left side\n");
         printf("1| Create new wags in right side \n");
         printf("2| Tie ends of the train and exit\n");
         scanf_s("%d", &isNextWagonCreate);
 
-        
+
 
         if (isNextWagonCreate == 0 || isNextWagonCreate == 1)
         {
@@ -566,32 +567,6 @@ bool if_parall()
     return false;
 }
 
-bool DetectProcess(const char* process_name)
-{
-    PROCESSENTRY32 pe;
-    HANDLE hSnapShot;
-    hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    ZeroMemory(&pe, sizeof(PROCESSENTRY32));
-    pe.dwSize = sizeof(PROCESSENTRY32);
-    LPDWORD exit_pr = 0;
-    bool res = false;
-    if (Process32First(hSnapShot, &pe)) {
-        do {
-            if (strcmp((char*)pe.szExeFile, process_name) == 0) {
-                //std::cout << wr_pas << std::endl;
-                GetExitCodeProcess(hSnapShot, exit_pr);
-                std::cout << exit_pr << std::endl;
-                getchar();
-                res = true;
-                exit(0);
-            }
-        } while (Process32Next(hSnapShot, &pe));
-    }
-
-    CloseHandle(hSnapShot);
-    return res;
-}
-
 int WriteMe(void* addr, unsigned int *wb, int size) 
 {
     HANDLE h = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, true, GetCurrentProcessId());
@@ -617,6 +592,112 @@ int CRC_8_func(PUCHAR data, int length)
         data++;
     }
     return crc;
+}
+
+void md5(const uint8_t* initial_msg, size_t initial_len, uint8_t* digest)
+{
+    uint32_t h0, h1, h2, h3;
+    uint8_t* msg = NULL;
+    size_t new_len, offset;
+    uint32_t w[16];
+    uint32_t a, b, c, d, i, f, g, temp;
+
+    h0 = 0x67452301;
+    h1 = 0xefcdab89;
+    h2 = 0x98badcfe;
+    h3 = 0x10325476;
+
+    for (new_len = initial_len + 1; new_len % (512 / 8) != 448 / 8; new_len++);
+    msg = (uint8_t*)malloc(new_len + 8);
+    memcpy(msg, initial_msg, initial_len);
+    msg[initial_len] = 0x80; // дописываем единичный байт 0х80
+    for (offset = initial_len + 1; offset < new_len; offset++) //дописываем нулевые байты
+        msg[offset] = 0;
+    // добавляем длину в битах в конец буфера.
+    to_bytes(initial_len * 8, msg + new_len);
+    //initial_len>>29 == initial_len * 8 >> 32 для избежания переполнения.
+    to_bytes(initial_len >> 29, msg + new_len + 4);
+    // Обработка сообщения последовательными 512-битными фрагментами:
+    // каждого фрагмента:
+    for (offset = 0; offset < new_len; offset += (512 / 8)) {
+        // разбиваем фрагменты на 16 32-битных слова w[j], 0 ≤ j ≤ 15
+        for (i = 0; i < 16; i++)
+            w[i] = to_int32(msg + offset + i * 4);
+        // Инициализация хэш-значения для этого фрагмента:
+        a = h0;
+        b = h1;
+        c = h2;
+        d = h3;
+        // Main loop:
+        for (i = 0; i < 64; i++) {
+            if (i < 16) {
+                f = (b & c) | ((~b) & d);
+                g = i;
+            }
+            else if (i < 32) {
+                f = (d & b) | ((~d) & c);
+                g = (5 * i + 1) % 16;
+            }
+            else if (i < 48) {
+                f = b ^ c ^ d;
+                g = (3 * i + 5) % 16;
+            }
+            else {
+                f = c ^ (b | (~d));
+                g = (7 * i) % 16;
+            }
+            temp = d;
+            d = c;
+            c = b;
+            b = b + LEFTROTATE((a + f + k[i] + w[g]), r[i]);
+            a = temp;
+        }
+        // Добавляем хэш фрагмента к результату на данный момент:
+        h0 += a;
+        h1 += b;
+        h2 += c;
+        h3 += d;
+    }
+
+    free(msg);
+    //var char digest[16] := h0 append h1 append h2 append h3 
+    to_bytes(h0, digest);
+    to_bytes(h1, digest + 4);
+    to_bytes(h2, digest + 8);
+    to_bytes(h3, digest + 12);
+}
+
+void to_bytes(uint32_t val, uint8_t* bytes)
+{
+    bytes[0] = (uint8_t)val;
+    bytes[1] = (uint8_t)(val >> 8);
+    bytes[2] = (uint8_t)(val >> 16);
+    bytes[3] = (uint8_t)(val >> 24);
+}
+
+uint32_t to_int32(const uint8_t* bytes)
+{
+    return (uint32_t)bytes[0]
+        | ((uint32_t)bytes[1] << 8)
+        | ((uint32_t)bytes[2] << 16)
+        | ((uint32_t)bytes[3] << 24);
+}
+
+int count_md5_funchash(const char* p, int length)
+{
+    uint8_t result[16];
+
+    int length2 = strlen(p);
+    md5((uint8_t*)p, length2, result);
+
+    int md5_sum = 0;
+
+    for (int i = 0; i < 16; i++) 
+    {
+        //std::cout << result[i];
+        md5_sum += int(result[i]);
+    }
+    return md5_sum;
 }
 
 std::string get_code()
