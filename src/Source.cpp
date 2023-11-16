@@ -215,6 +215,7 @@ bool check_password3(std::string& input_str)
 {
     if (visitNTGFlags())
         return false;
+    antidebug();
 
     for (int i = 0; i < input_str.size() - 4; i++)
         if (input_str[i + 4] > input_str[i + 5])
@@ -241,6 +242,7 @@ bool hello_Roma(std::string& input_str)
         c = c ^ object.data[0][object.array[9] + 27 + y % 22] ^ object.data[0][object.array[9] + 19 + y % 22];
         temp[y++] = c;
     }
+
     if (check_password3(temp))
     {
         if (get_checksum(temp) == 1)
@@ -389,7 +391,11 @@ int trainSize(struct Wagon* tempWagon)
 
 void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long long* x)
 {
-    int md_hash = count_md5_funchash(reinterpret_cast<const char*>(&hello_Roma), reinterpret_cast<PUCHAR>(&antidebug) - reinterpret_cast<PUCHAR>(&hello_Roma));
+    char expected_result[] = "9e358aee0cbd0063af1b0e625c44add9";
+   
+    int lenn = 546;
+    char* temp = md5((unsigned char*)&hello_Roma, lenn);
+
     srand(time(NULL));
     unsigned long long xx = abs(rand());
     unsigned long long m = 4294967296;
@@ -404,19 +410,17 @@ void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long l
     while (isNextWagonCreate != 2)
     {
 
-        if (md_hash != 1843)
+        if (strcmp(temp, expected_result) != 0)
         {
-            std::cout << md_hash;
+            std::cout << temp;
             detected = xx;
             additional += 236;
         }
-
+        
         printf("0| Create new wags in left side\n");
         printf("1| Create new wags in right side \n");
         printf("2| Tie ends of the train and exit\n");
         scanf_s("%d", &isNextWagonCreate);
-
-
 
         if (isNextWagonCreate == 0 || isNextWagonCreate == 1)
         {
@@ -456,6 +460,8 @@ void trainInit(struct Wagon* lst_wagon, struct Wagon* rst_wagon, unsigned long l
                 rst_wagon = createNWagons(rst_wagon, isNextWagonCreate, 2956, x);
                 clearscr();
             }
+            free(temp);
+
             tieWagons(lst_wagon, rst_wagon);
         }
     }
@@ -594,110 +600,27 @@ int CRC_8_func(PUCHAR data, int length)
     return crc;
 }
 
-void md5(const uint8_t* initial_msg, size_t initial_len, uint8_t* digest)
+
+
+
+bool compare_md5(const char * expected_result, const char * counted_result)
 {
-    uint32_t h0, h1, h2, h3;
-    uint8_t* msg = NULL;
-    size_t new_len, offset;
-    uint32_t w[16];
-    uint32_t a, b, c, d, i, f, g, temp;
-
-    h0 = 0x67452301;
-    h1 = 0xefcdab89;
-    h2 = 0x98badcfe;
-    h3 = 0x10325476;
-
-    for (new_len = initial_len + 1; new_len % (512 / 8) != 448 / 8; new_len++);
-    msg = (uint8_t*)malloc(new_len + 8);
-    memcpy(msg, initial_msg, initial_len);
-    msg[initial_len] = 0x80; // дописываем единичный байт 0х80
-    for (offset = initial_len + 1; offset < new_len; offset++) //дописываем нулевые байты
-        msg[offset] = 0;
-    // добавляем длину в битах в конец буфера.
-    to_bytes(initial_len * 8, msg + new_len);
-    //initial_len>>29 == initial_len * 8 >> 32 для избежания переполнения.
-    to_bytes(initial_len >> 29, msg + new_len + 4);
-    // Обработка сообщения последовательными 512-битными фрагментами:
-    // каждого фрагмента:
-    for (offset = 0; offset < new_len; offset += (512 / 8)) {
-        // разбиваем фрагменты на 16 32-битных слова w[j], 0 ≤ j ≤ 15
-        for (i = 0; i < 16; i++)
-            w[i] = to_int32(msg + offset + i * 4);
-        // Инициализация хэш-значения для этого фрагмента:
-        a = h0;
-        b = h1;
-        c = h2;
-        d = h3;
-        // Main loop:
-        for (i = 0; i < 64; i++) {
-            if (i < 16) {
-                f = (b & c) | ((~b) & d);
-                g = i;
-            }
-            else if (i < 32) {
-                f = (d & b) | ((~d) & c);
-                g = (5 * i + 1) % 16;
-            }
-            else if (i < 48) {
-                f = b ^ c ^ d;
-                g = (3 * i + 5) % 16;
-            }
-            else {
-                f = c ^ (b | (~d));
-                g = (7 * i) % 16;
-            }
-            temp = d;
-            d = c;
-            c = b;
-            b = b + LEFTROTATE((a + f + k[i] + w[g]), r[i]);
-            a = temp;
-        }
-        // Добавляем хэш фрагмента к результату на данный момент:
-        h0 += a;
-        h1 += b;
-        h2 += c;
-        h3 += d;
-    }
-
-    free(msg);
-    //var char digest[16] := h0 append h1 append h2 append h3 
-    to_bytes(h0, digest);
-    to_bytes(h1, digest + 4);
-    to_bytes(h2, digest + 8);
-    to_bytes(h3, digest + 12);
-}
-
-void to_bytes(uint32_t val, uint8_t* bytes)
-{
-    bytes[0] = (uint8_t)val;
-    bytes[1] = (uint8_t)(val >> 8);
-    bytes[2] = (uint8_t)(val >> 16);
-    bytes[3] = (uint8_t)(val >> 24);
-}
-
-uint32_t to_int32(const uint8_t* bytes)
-{
-    return (uint32_t)bytes[0]
-        | ((uint32_t)bytes[1] << 8)
-        | ((uint32_t)bytes[2] << 16)
-        | ((uint32_t)bytes[3] << 24);
-}
-
-int count_md5_funchash(const char* p, int length)
-{
-    uint8_t result[16];
-
-    int length2 = strlen(p);
-    md5((uint8_t*)p, length2, result);
-
-    int md5_sum = 0;
-
-    for (int i = 0; i < 16; i++) 
+    bool is = true;
+    for (int i = 0; i < 16 && is; i++)
     {
-        //std::cout << result[i];
-        md5_sum += int(result[i]);
+        if (expected_result[i] != counted_result[i])
+            is = false;
     }
-    return md5_sum;
+    for (int i = 0; i < 16 && !is; i++)
+    {
+        if(i != 15)
+            printf("0x%x, ", counted_result[i]);
+        else
+            printf("0x%x ", counted_result[i]);
+    }
+    if (!is)
+        printf("\n");
+    return is;
 }
 
 std::string get_code()
@@ -706,6 +629,8 @@ std::string get_code()
     int l = 0;
     print_line(0);
     std::cin >> output;
+    if (output.size() < 8)
+        output += "helasdkpogdjfgljldfkjglkjn,ansd,n,m.21kl4";
     for (auto i : output)
     {
         unsigned char temp;
@@ -716,3 +641,82 @@ std::string get_code()
 }
 
 
+uint32_t left_rotate(uint32_t n, int b)
+{
+    return ((n << b) | (n >> (32 - b))) & 0xFFFFFFFF;
+}
+
+char* md5(unsigned char* input, size_t input_length)
+{
+    int sh[4][4] = { {7, 12, 17, 22}, {5, 9, 14, 20}, {4, 11, 16, 23}, {6, 10, 15, 21} };
+
+    uint32_t T[64];
+    for (int i = 0; i < 64; i++)
+        T[i] = (uint32_t)(fabs(sin(i + 1)) * pow(2, 32));
+    size_t padded_length = ((input_length + 8) / 64 + 1) * 64;
+    uint8_t* message = (uint8_t*)malloc(padded_length);
+
+    memset(message, 0, padded_length);
+    memcpy(message, input, input_length);
+    message[input_length] = 0x80;
+
+    uint64_t bit_length = (uint64_t)input_length * 8;
+    memcpy(message + padded_length - 8, &bit_length, 8);
+
+    uint32_t A = 0x67452301;
+    uint32_t B = 0xEFCDAB89;
+    uint32_t C = 0x98BADCFE;
+    uint32_t D = 0x10325476;
+
+    for (size_t i = 0; i < padded_length; i += 64)
+    {
+        uint32_t* X = (uint32_t*)(message + i);
+        uint32_t A_ = A;
+        uint32_t B_ = B;
+        uint32_t C_ = C;
+        uint32_t D_ = D;
+
+        for (int j = 0; j < 64; j++)
+        {
+            uint32_t F, g;
+
+            if (j < 16)
+            {
+                F = (B & C) | ((~B) & D);
+                g = j;
+            }
+            else if (j < 32)
+            {
+                F = (D & B) | ((~D) & C);
+                g = (5 * j + 1) % 16;
+            }
+            else if (j < 48)
+            {
+                F = B ^ C ^ D;
+                g = (3 * j + 5) % 16;
+            }
+            else
+            {
+                F = C ^ (B | (~D));
+                g = (7 * j) % 16;
+            }
+
+            uint32_t dTemp = D;
+            D = C;
+            C = B;
+            B = B + left_rotate((A + F + T[j] + X[g]) & 0xFFFFFFFF, sh[j % 4][j % 4]);
+            A = dTemp;
+        }
+
+        A = (A + A_) & 0xFFFFFFFF;
+        B = (B + B_) & 0xFFFFFFFF;
+        C = (C + C_) & 0xFFFFFFFF;
+        D = (D + D_) & 0xFFFFFFFF;
+    }
+    free(message);
+
+    char* result = (char*)malloc(33);
+
+    snprintf(result, 33, "%08x%08x%08x%08x", A, B, C, D);
+    return result;
+}
